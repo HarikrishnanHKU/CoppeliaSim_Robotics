@@ -1,0 +1,71 @@
+sim = require'sim'
+
+-- 1. Initialize 'self' at the very top so it's available to all functions
+if not self then self = {} end
+
+function sysCall_init()
+    -- Get joint handles
+    self.joints = {}
+    for i=1,6 do
+        self.joints[i] = sim.getObject('../joint', {index=i-1})
+    end
+
+    -- Open file in a safe location (current directory)
+    self.file = io.open("robot_data.csv", "w")
+    if self.file then
+        self.file:write("Time,J1,J2,J3,J4,J5,J6\n")
+        print("File created successfully.")
+    else
+        print("Could not create file!")
+    end
+end
+
+-- This runs every physics step automatically
+function sysCall_sensing()
+    if self.file then
+        local t = sim.getSimulationTime()
+        local data = {string.format("%.3f", t)}
+        for i=1,6 do
+            table.insert(data, sim.getJointPosition(self.joints[i]))
+        end
+        self.file:write(table.concat(data, ",") .. "\n")
+        self.file:flush() 
+    end
+end
+
+-- This is where your motion logic lives
+function sysCall_thread()
+    local vel = 180
+    local accel = 40
+    local jerk = 80
+    local maxVel = {vel*math.pi/180, vel*math.pi/180, vel*math.pi/180, vel*math.pi/180, vel*math.pi/180, vel*math.pi/180}
+    local maxAccel = {accel*math.pi/180, accel*math.pi/180, accel*math.pi/180, accel*math.pi/180, accel*math.pi/180, accel*math.pi/180}
+    local maxJerk = {jerk*math.pi/180, jerk*math.pi/180, jerk*math.pi/180, jerk*math.pi/180, jerk*math.pi/180, jerk*math.pi/180}
+
+    -- Movement sequence
+    local targetPos1 = {90*math.pi/180, 90*math.pi/180, -90*math.pi/180, 90*math.pi/180, 90*math.pi/180, 90*math.pi/180}
+    moveToConfig(self.joints, maxVel, maxAccel, maxJerk, targetPos1)
+
+    local targetPos2 = {-90*math.pi/180, 45*math.pi/180, 90*math.pi/180, 135*math.pi/180, 90*math.pi/180, 90*math.pi/180}
+    moveToConfig(self.joints, maxVel, maxAccel, maxJerk, targetPos2)
+
+    local targetPos3 = {0,0,0,0,0,0}
+    moveToConfig(self.joints, maxVel, maxAccel, maxJerk, targetPos3)
+end
+
+function moveToConfig(handles, maxVel, maxAccel, maxJerk, targetConf)
+    sim.moveToConfig({
+        joints = handles,
+        targetPos = targetConf,
+        maxVel = maxVel,
+        maxAccel = maxAccel,
+        maxJerk = maxJerk,
+    })
+end
+
+function sysCall_cleanup()
+    if self.file then
+        self.file:close()
+        print("File closed and saved.")
+    end
+end
