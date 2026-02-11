@@ -1,0 +1,44 @@
+import time
+from coppeliasim_zmqremoteapi_client import RemoteAPIClient
+
+# 1. Connect to CoppeliaSim
+client = RemoteAPIClient()
+sim = client.getObject('sim')
+
+# 2. Get the handle for the target dummy
+# Note: Use the absolute path or the Alias. 
+# If your target is named 'target' in the scene:
+try:
+    target_handle = sim.getObject('/target')
+except:
+    # Fallback if it's nested under the robot
+    target_handle = sim.getObject('/UR10/target')
+
+def move_robot(x, y, z):
+    """Sends [x, y, z] coordinates to the target dummy."""
+    # -1 means coordinates are relative to the world frame
+    sim.setObjectPosition(target_handle, -1, [x, y, z])
+    print(f"Target set to: x={x}, y={y}, z={z}")
+
+# 3. Main Loop
+sim.startSimulation()
+print("Simulation started...")
+
+try:
+    # Define a simple path (X, Y, Z)
+    # Ensure these are within the UR10's reach (~1.3 meters)
+    waypoints = [
+        [0.5, 0.0, 0.5],
+        [0.5, 0.4, 0.7],
+        [0.3, -0.3, 0.4],
+        [0.5, 0.0, 0.5]  # Back to start
+    ]
+
+    for pt in waypoints:
+        move_robot(pt[0], pt[1], pt[2])
+        time.sleep(2)  # Wait 2 seconds for the IK to move the arm
+
+finally:
+    # Stop simulation when done
+    sim.stopSimulation()
+    print("Simulation stopped.")
