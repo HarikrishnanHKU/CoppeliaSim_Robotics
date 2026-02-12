@@ -1,0 +1,36 @@
+import math
+from coppeliasim_zmqremoteapi_client import RemoteAPIClient
+
+client = RemoteAPIClient()
+sim = client.getObject('sim')
+
+# Use a relative path to the first joint of the UR3 model
+# The index {0} refers to the first instance found
+joint_names = [f'/UR3/joint{{{i}}}' for i in range(6)] 
+# Note: Double braces {{i}} are needed for f-strings to output a single {i}
+
+try:
+    joint_handles = [sim.getObject(name) for name in joint_names]
+    print("Successfully found all joint handles!")
+except Exception as e:
+    print(f"Still failing! Error: {e}")
+
+def move_robot(angles_deg):
+    sim.startSimulation()
+    for i, angle in enumerate(angles_deg):
+        sim.setJointPosition(joint_handles[i], math.radians(angle))
+    print("Moved to position.")
+
+#Enter the Joint angles here(in Radians)
+move_robot([1.57, 4*1.57, 1*1.57, 2*1.57, 3*1.57, 4*1.57])
+time.sleep(1000)
+move_robot([2*1.57, 3*1.57, 2*1.57, 1.57, 2*1.57, 3*1.57])
+time.sleep(1000)
+move_robot([3*1.57, 2*1.57, 3*1.57, 2*1.57, 3*1.57, 2*1.57])
+time.sleep(1000)
+move_robot([4*1.57, 1*1.57, 4*1.57, 1*1.57, 4*1.57, 1*1.57])
+time.sleep(1000)
+
+
+
+
